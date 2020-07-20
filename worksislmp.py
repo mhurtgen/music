@@ -26,8 +26,7 @@ conn = sqlite3.connect('ILSMP')
 def getdata(conn):
     query="""
     SELECT PK_composer, name, url
-    FROM composers
-    LIMIT 10
+    FROM composers    
 """
 
     cursor = conn.execute(query)
@@ -64,7 +63,7 @@ def gethrefnext(bs_obj):
 #            href=None
     return href
     
-def getworks(bs_obj,work_pattern,i,index_composer):
+def getworks(bs_obj,work_pattern,index_composer):
     
     
     for li in bs_obj.select('li'):
@@ -82,13 +81,13 @@ def getcomposerurl(txt):
     return resultstr
     
     
-def allworks(url,work_pattern,index_work,index_composer):
+def allworks(url,work_pattern,index_composer):
     webcontent=requests.get(url)
     bs_obj = BeautifulSoup(webcontent.text,"html.parser")
     while True:
         #extract href next
         try:
-            getworks(bs_obj,work_pattern,index_work,index_composer)
+            getworks(bs_obj,work_pattern,index_composer)
             href=gethrefnext(bs_obj)
             #print(href)
             if (href!=None):
@@ -104,14 +103,14 @@ def allworks(url,work_pattern,index_work,index_composer):
 
 def getallworks():
     data=getdata(conn)
-    index_work=1
+    
     
     for index,row in data.iterrows():
         index_composer=row['PK_composer']
         name=row['name']
         url=row['url']
         work_pattern=getpattern(name)    
-        works=allworks(url,work_pattern,index_work,index_composer)
+        works=allworks(url,work_pattern,index_composer)
         
     return works
     #open webpage

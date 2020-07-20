@@ -29,6 +29,8 @@ def getpattern():
     composer_pattern=re.compile('.*,.*')
     next_pattern=re.compile('.*next.*')
     
+def getlistsize():
+    return len(composers)
 
 def gethrefnext(bs_obj):
     for el in bs_obj.select('a'):
@@ -49,7 +51,8 @@ def getcomposers(bs_obj):
         test=composer_pattern.match(data)
         if (test!=None):
             worksurl=getcomposerurl(data)
-            composers.append([i,data,worksurl])
+            index_composer=getlistsize()+1
+            composers.append([index_composer,data,worksurl])
             i=i+1
     #return composers
 
