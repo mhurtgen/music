@@ -8,10 +8,15 @@ Created on Sun May 31 15:34:08 2020
 
 
 import sqlite3
-import composersimslp2period as cp
+import composersimslp2period2 as cp
 
+def initcursor():
+    conn = sqlite3.connect('ILSMP')
+    cur=conn.cursor()
+    return conn,cur
 
 def init():
+    conn,cur=initcursor()
     sql_create_composer_table = """CREATE TABLE IF NOT EXISTS composers (  
                                             PK_composer int,                                     
                                             name text,
@@ -29,22 +34,21 @@ def init():
     cur.execute(sql_create_works_table)
     conn.commit()
     
-def insertdata(j,data,period):
+def insertdata(data,period):
+    count=0
     for el in data:    
-        cur.execute('INSERT INTO composers values(?,?,?)',(j, el, period))
+        
+        cur.execute('INSERT INTO composers values(?,?,?)',(data[count][0],data[count][1], period))
+        count=count+1
         conn.commit()
 
 def main():
-    j=0
+    index=0
     for i in range(1,5):
-        j=j+1
-        data=cp.getcomposersofperiod(i)
-        insertdata(j,data,i)
+        
+        data,k=cp.getcomposersofperiod(i,index)
+        insertdata(data,i)
+        index=k
 
-conn = sqlite3.connect('Works')
-cur=conn.cursor()
-init()
-main()
-cur.close()
-conn.close()
-    
+
+

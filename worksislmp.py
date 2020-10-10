@@ -21,7 +21,7 @@ next_pattern=re.compile('.*next.*')
 
 #with open('composerlistimslp.txt','w') as f:
 #    f.write(webcontent.text)
-conn = sqlite3.connect('ILSMP')
+#conn = sqlite3.connect('ILSMP')
 
 def getdata(conn):
     query="""
@@ -101,7 +101,7 @@ def allworks(url,work_pattern,index_composer):
             break
     return works
 
-def getallworks():
+def getallworks(conn):
     data=getdata(conn)
     
     
