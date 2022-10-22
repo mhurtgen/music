@@ -1,3 +1,2 @@
 # music
-As a musician I wanted to know who the most prolific composer was, how many Symphonies he had composed and so on. The best way to do this was to scrape the
-the IMSLP website, fill database tables and do some statistics. Using python libraries, the ISLMP, I extracted composer and work information.
+This is a web scraping program for IMSLP (International Music Score Library Petrucci). The program fills databases tables to do some statistics. Using python libraries, information on the composers and the tunes are extracted from the IMSLP website.
