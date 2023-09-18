@@ -16,19 +16,22 @@ import numpy as np
 
 conn=sqlite3.connect('ISMLPperiodtotal2',check_same_thread=False)
 cur=conn.cursor()
-instruments=['piano','violin','flute','clarinet','oboe','trumpet',
+instruments=['all','piano','violin','flute','clarinet','oboe','trumpet',
              'horn','cello','viola','guitar','string','wind']
+types=['all','concerto','symphony','sonata','menuet','toccata','fuga','prelude',
+           'lied','oratorio','cantata','mass','opera','waltz'
+           'trio','quartet','quintet','sextet','septuor','octuor','ländler','song','variation']
 
 def getcomposerperiod(p):
         """execute sql query"""
         #conn=connect()
-        rs=cur.execute("""SELECT C.name, COUNT(*)
+        rs=cur.execute("""SELECT DISTINCT C.name, COUNT(*)
   FROM works AS W
 JOIN composers  AS C
   ON W.FK_composer=C.PK_composer
 WHERE FK_period=?
 GROUP BY FK_composer, FK_period
-ORDER BY COUNT(*) DESC
+ORDER BY COUNT(*) ASC
 LIMIT 10""",p)
     
         
@@ -48,7 +51,7 @@ LIMIT 10""",p)
 def getcomposerperiod2(p):
         """execute sql query"""
         if (p=='0'):
-                    rs=cur.execute("""SELECT C.name, COUNT(*)
+                    rs=cur.execute("""SELECT DISTINCT C.name, COUNT(*)
   FROM works AS W
 JOIN composers  AS C
   ON W.FK_composer=C.PK_composer
@@ -57,7 +60,7 @@ ORDER BY COUNT(*) DESC
 LIMIT 10""")
         else:
         #conn=connect()
-            rs=cur.execute("""SELECT C.name, COUNT(*)
+            rs=cur.execute("""SELECT DISTINCT C.name, COUNT(*)
   FROM works AS W
 JOIN composers  AS C
   ON W.FK_composer=C.PK_composer
@@ -77,6 +80,7 @@ LIMIT 10""",p)
     
     
         sql_data=pd.DataFrame(k,columns=columnsSQL)
+        sql_data.rename(columns={0:'name',1:'total'})
         
         return sql_data
 
@@ -100,32 +104,64 @@ def getperiod(p):
         s=s1+s2+" "
     return s
 
-def getcomposerperiodinstrument(p,i):
+def gettypeindex(s):
+    lgt=len(types)
+    j="0"
+    for i in range(0,lgt-1):
+        if (types[i]==s):
+            j=str(i)
+            
+    return j       
+
+def gettype(s):
+    s1="""FK_type="""
+    s_out=""
+    
+    if (s=="all"):
+        s_out=""
+    else:
+        t=gettypeindex(s)
+        s_out=s1+t+" "
+    return s_out
+
+def getcomposerperiodinstrument(p,i,t):
         """execute sql query"""
-        s1="""SELECT C.name, COUNT(*)
+        s1="""SELECT DISTINCT C.name, COUNT(*) 
   FROM works AS W
 JOIN composers  AS C
-  ON W.FK_composer=C.PK_composer """
+  ON W.FK_composer=C.PK_composer
+ LEFT OUTER JOIN Types T
+ON W.FK_type=T.PK_type """
         
         si=getinstrument(i)
         sp=getperiod(p)
-        
+        st=gettype(t)
         s3="""GROUP BY FK_composer, FK_period
 ORDER BY COUNT(*) DESC
 LIMIT 10"""
         
         if (p=='0'):
             if (i=="all"):
-                s2=""
+                if (t=="0"):
+                    s2=""
+                else:
+                    s2="""WHERE """+st+" "
             else:
-                s2="""WHERE """+si+" "
-            
+                if (t=="0"):
+                    s2="""WHERE """+si+" "
+                else:
+                    s2="""WHERE """+si+" AND "+st+" "
         elif (i=="all"):
-            s2="""WHERE """+sp+" "
+            if (t=="0"):
+                s2="""WHERE """+sp
+            else:
+                s2="""WHERE """+sp+ " AND "+st
+        elif (t=="0"):
+            s2="""WHERE """+sp+ " AND "+si
         else:
-            s2="""WHERE """+sp+" AND "+si+" "
+            s2="""WHERE """+sp+" AND "+si+" AND "+st
         
-        query=s1+s2+s3
+        query=s1+s2+'\n'+s3
         print(query)
         
         
@@ -146,9 +182,11 @@ LIMIT 10"""
         
         return sql_data
 
-
-getcomposerperiodinstrument("3","piano")
-
+#print(gettype("sonata"))
+#print(getinstrument("all"))
+#getcomposerperiodinstrument("0","clarinet","0")
+#getcomposerperiodinstrument("0","piano","1")
+#getcomposerperiodinstrument("0","all","0")
 #            
 #    if (instr=="violin"):
 #        s="violin=1"
