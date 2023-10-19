@@ -17,11 +17,12 @@ def column(matrix, i):
     return [row[i] for row in matrix]
 
 def getinfotunes():
-    types=['concerto','symphony','sonata','menuet','toccata','fuga','prelude',
-           'lied','oratorio','cantata','mass','opera','waltz'
-           'trio','quartet','quintet','sextet','septuor','octuor','ländler','song','variation']
-    instruments=['piano','violin','flute','clarinet','oboe','trumpet','horn',
-                 'cello','viola','guitar','double_base']
+    types=['concerto','symphony','sonata','minuet','toccata','fugue','prelude',
+           'lied','oratorio','cantata','mass','opera','waltz',
+           'trio','quartet','quintet','sextet','septuor','octuor','ländler','song',
+           'variation','romance','other']
+    instruments=['all','piano','violin','flute','clarinet','oboe','trumpet','horn','bassoon',
+                 'cello','viola','guitar','contrabass','string','wind','organ']
 
     mode_pattern=re.compile('.*in [A-G](-(flat|sharp))? major|minor.*')
     return types,instruments,mode_pattern
@@ -79,14 +80,26 @@ def getinfotune(w,datalist):
     #matches=sum(x in w for x in datalist)
     for i in range(0,lgt):
         if (datalist[i] in w.lower()):
-            return 1
+            return i
 
+def gettype(w,datalist):
+    lgt=len(datalist)
+    
+    for i in range(0,lgt):
+        if (datalist[i] in w.lower()):
+            return i+1
+        
+    return lgt
+    
+
+    
 def instrumenttest(w,data):
     lgt=len(data)
     #matches=sum(x in w for x in datalist)
     for i in range(0,lgt):
         if (data in w.lower()):
             return 1
+    
 
 def getinstruments(pk,w,instruments):
     lgt=len(instruments)
@@ -109,9 +122,12 @@ def getmode(mode_pattern,w):
         for i in range(1,lg):
             if (words[i]=='in'):
                 tone=words[i+1]
-                mode=words[i+2]
-        
-        
+                modetot=words[i+2]
+                lg=len(modetot)
+                if (lg==5):
+                    mode=modetot
+                else:
+                    mode=modetot[0:lg-1]    
                 return mode
 
 def gettone(mode_pattern,w):
@@ -141,7 +157,7 @@ def main():
     
     types,instruments,mode_pattern=getinfotunes()
     
-    musiclist['FK_Type']=musiclist.apply(lambda x: getinfotune(x.title,types),axis=1)
+    musiclist['FK_Type']=musiclist.apply(lambda x: gettype(x.title,types),axis=1)
     
     lginstr=len(instruments)
     for i in range(0,lginstr):
@@ -163,10 +179,16 @@ def main():
             'oboe':musiclist['oboe'],
             'trumpet':musiclist['trumpet'],
             'horn':musiclist['horn'],
+            'bassoon':musiclist['bassoon'],
             'cello':musiclist['cello'],
             'viola':musiclist['viola'],
             'guitar':musiclist['guitar'],
-            'double_base':musiclist['double_base']}
+            'contrabass':musiclist['contrabass'],
+            'string':musiclist['string'],
+            'wind':musiclist['wind'],
+            'organ':musiclist['organ']
+            
+            }
 
    # work_instruments2={'FK_work':column(work_instruments,0),'FK_instrument':column(work_instruments,1)}
     
@@ -183,7 +205,10 @@ def main():
                                     'cello',
                                     'viola',
                                     'guitar',
-                                    'double_base'
+                                    'contrabass',
+                                    'string',
+                                    'wind',
+                                    'organ'
                         ])
     
    # dfwi=DataFrame(work_instruments2,columns=['FK_work','FK_instrument'])
