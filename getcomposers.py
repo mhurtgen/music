@@ -10,17 +10,51 @@ import sqlite3
 
 import pandas as pd
 import numpy as np
+import math
 
 #from collections import OrderedDict
 #import dash_core_components as dcc
 
 conn=sqlite3.connect('ISMLPperiodtotal2',check_same_thread=False)
 cur=conn.cursor()
-instruments=['all','piano','violin','flute','clarinet','oboe','trumpet',
-             'horn','cello','viola','guitar','string','wind']
+instruments=['piano','violin','flute','clarinet','oboe','trumpet','horn',
+                 'cello','viola','guitar','double_base','string','wind','organ']
 types=['all','concerto','symphony','sonata','menuet','toccata','fuga','prelude',
-           'lied','oratorio','cantata','mass','opera','waltz'
-           'trio','quartet','quintet','sextet','septuor','octuor','ländler','song','variation']
+           'lied','oratorio','cantata','mass','opera','waltz',
+           'trio','quartet','quintet','sextet','septuor','octuor','ländler','song','variation','romance']
+
+def getcomposers():
+    """execute sql query"""
+    rs=cur.execute("""SELECT PK_composer,name
+                         FROM composers
+                         ORDER BY name""")
+    columnsSQL = [column[0] for column in rs.description]
+       
+    f=rs.fetchall()
+        
+    
+    k=np.asarray(f)
+    
+    
+    sql_data=pd.DataFrame(k,columns=columnsSQL)
+        
+    return sql_data
+
+def gettypes():
+    """execute sql query"""
+    rs=cur.execute("""SELECT PK_type,type
+                         FROM types""")
+    columnsSQL = [column[0] for column in rs.description]
+       
+    f=rs.fetchall()
+        
+    
+    k=np.asarray(f)
+    
+    
+    sql_data=pd.DataFrame(k,columns=columnsSQL)
+        
+    return sql_data
 
 def getcomposerperiod(p):
         """execute sql query"""
@@ -90,7 +124,7 @@ def getinstrument(instr):
     if (instr=="all"):
         s=""
     else:
-        for i in range(0,number_instruments-1):
+        for i in range(0,number_instruments):
             if (instr==instruments[i]):
                 s=str(instr)+"=1"
     return s
@@ -126,7 +160,8 @@ def gettype(s):
 
 def getcomposerperiodinstrument(p,i,t):
         """execute sql query"""
-        s1="""SELECT DISTINCT C.name, COUNT(*) 
+        sql_data=pd.DataFrame()
+        s1="""SELECT DISTINCT C.name, COUNT(*) AS Compositions
   FROM works AS W
 JOIN composers  AS C
   ON W.FK_composer=C.PK_composer
@@ -142,24 +177,26 @@ LIMIT 10"""
         
         if (p=='0'):
             if (i=="all"):
-                if (t=="0"):
+                if (t=="all"):
                     s2=""
                 else:
                     s2="""WHERE """+st+" "
             else:
-                if (t=="0"):
+                if (t=="all"):
                     s2="""WHERE """+si+" "
                 else:
                     s2="""WHERE """+si+" AND "+st+" "
-        elif (i=="all"):
-            if (t=="0"):
-                s2="""WHERE """+sp
-            else:
-                s2="""WHERE """+sp+ " AND "+st
-        elif (t=="0"):
-            s2="""WHERE """+sp+ " AND "+si
         else:
-            s2="""WHERE """+sp+" AND "+si+" AND "+st
+            if (i=="all"):
+                if (t=="all"):
+                    s2="""WHERE """+sp
+                else:
+                    s2="""WHERE """+sp+ " AND "+st
+            else:
+                if (t=="all"):
+                    s2="""WHERE """+sp+ " AND "+si
+                else:
+                    s2="""WHERE """+sp+" AND "+si+" AND "+st
         
         query=s1+s2+'\n'+s3
         print(query)
@@ -169,53 +206,291 @@ LIMIT 10"""
         rs=cur.execute(query)
         
         
+        try: 
+            columnsSQL = [column[0] for column in rs.description]
         
-        columnsSQL = [column[0] for column in rs.description]
-        
-        f=rs.fetchall()
+            f=rs.fetchall()
         
     
-        k=np.asarray(f)
+            k=np.asarray(f)
     
     
-        sql_data=pd.DataFrame(k,columns=columnsSQL)
+            sql_data=pd.DataFrame(k,columns=columnsSQL)
+        except: ValueError
         
         return sql_data
 
-#print(gettype("sonata"))
-#print(getinstrument("all"))
-#getcomposerperiodinstrument("0","clarinet","0")
-#getcomposerperiodinstrument("0","piano","1")
-#getcomposerperiodinstrument("0","all","0")
-#            
-#    if (instr=="violin"):
-#        s="violin=1"
-#    elif(instr="piano"):
-#        s="violin=1"
-#        query="""SELECT C.name, FK_period, COUNT(*)
-#  FROM works AS W
-#JOIN composers  AS C
-#  ON W.FK_composer=C.PK_composer
-#WHERE FK_period IN (3,1) AND violin=1
-#GROUP BY FK_composer, FK_period
-#ORDER BY COUNT(*) DESC"""
-#cur.close()
+def getcomposerperiodinstrument2(p,i,t):
+        """execute sql query"""
+        sql_data=pd.DataFrame()
+        s1="""SELECT DISTINCT C.PK_composer, C.name
+  FROM works AS W
+JOIN composers  AS C
+  ON W.FK_composer=C.PK_composer
+ LEFT OUTER JOIN Types T
+ON W.FK_type=T.PK_type """
+        
+        si=getinstrument(i)
+        sp=getperiod(p)
+        st=gettype(t)
+        s3="""GROUP BY FK_composer, FK_period
+ORDER BY COUNT(*) DESC
+LIMIT 10"""
+        
+        if (p=='0'):
+            if (i=="all"):
+                if (t=="all"):
+                    s2=""
+                else:
+                    s2="""WHERE """+st+" "
+            else:
+                if (t=="all"):
+                    s2="""WHERE """+si+" "
+                else:
+                    s2="""WHERE """+si+" AND "+st+" "
+        elif (i=="all"):
+            if (t=="all"):
+                s2="""WHERE """+sp
+            else:
+                s2="""WHERE """+sp+ " AND "+st
+        elif (t=="all"):
+            s2="""WHERE """+sp+ " AND "+si
+        else:
+            s2="""WHERE """+sp+" AND "+si+" AND "+st
+        
+        query=s1+s2+'\n'+s3
+        #print(query)
+        
+        
+        
+        rs=cur.execute(query)
+        
+        
+        try: 
+            columnsSQL = [column[0] for column in rs.description]
+        
+            f=rs.fetchall()
+        
+    
+            k=np.asarray(f)
+    
+    
+            sql_data=pd.DataFrame(k,columns=columnsSQL)
+        except: ValueError
+        
+        return sql_data
 
-#df = pd.read_sql(("""
-#            SELECT C.name, COUNT(*)
-#  FROM works AS W
-#JOIN composers  AS C
-#  ON W.FK_composer=C.PK_composer
-#WHERE FK_period=%(period)i
-#GROUP BY FK_composer, FK_period
-#ORDER BY COUNT(*) DESC
-#LIMIT 10
-#            """), conn,params={"period":1})
-#
-#x=df.iloc[:, 1]
-#y=df.iloc[:, 0]
-#fig = px.bar(df, x, y, orientation='h',
-#             
-#             height=400,
-#             title='Prolific composers')
-#fig.show()
+
+def getcomposerperiodinstrument_details(p,i,t,FK_composer):
+        """execute sql query"""
+#        if (i=="all" or t=="0"):
+#            return
+#        
+        s1="""SELECT T.PK_type, C.name
+  FROM works AS W
+JOIN composers  AS C
+  ON W.FK_composer=C.PK_composer
+ LEFT OUTER JOIN Types T
+ON W.FK_type=T.PK_type """
+        
+        si=getinstrument(i)
+        sp=getperiod(p)
+        st=gettype(t)
+        s3="""
+        ORDER BY C.PK_composer, W.FK_type"""
+        
+        if (p=='0'):
+            if (i=="all"):
+                if (t=="all"):
+                    s2=""
+                else:
+                    s2="""WHERE """+st+" "
+            else:
+                if (t=="all"):
+                    s2="""WHERE """+si+" "
+                else:
+                    s2="""WHERE """+si+" AND "+st+" "
+        elif (i=="all"):
+            if (t=="all"):
+                s2="""WHERE """+sp
+            else:
+                s2="""WHERE """+sp+ " AND "+st
+        elif (t=="all"):
+            s2="""WHERE """+sp+ " AND "+si
+        else:
+            s2="""WHERE """+sp+" AND "+si+" AND "+st
+        sc=" AND FK_composer=?"
+        query=s1+s2+sc+'\n'+s3
+        print(query)
+        
+        
+        
+        rs=cur.execute(query,FK_composer)
+        
+        
+        try:
+            columnsSQL = [column[0] for column in rs.description]
+        
+            f=rs.fetchall()
+        
+    
+            k=np.asarray(f)
+    
+    
+            sql_data=pd.DataFrame(k,columns=columnsSQL)
+            return sql_data
+        except: ValueError
+        
+def getcomposer_details(t,FK_composer):  
+        """execute sql query"""
+#        if (i=="all" or t=="0"):
+#            return
+#        
+        query="""SELECT W.title
+  FROM works AS W
+JOIN composers  AS C
+  ON W.FK_composer=C.PK_composer
+ WHERE W.FK_type=? AND FK_composer=?"""
+        
+                
+        
+        rs=cur.execute(query,(t,FK_composer,))
+        
+        
+        try:
+            columnsSQL = [column[0] for column in rs.description]
+        
+            f=rs.fetchall()
+        
+    
+            k=np.asarray(f)
+    
+    
+            sql_data=pd.DataFrame(k,columns=columnsSQL)
+            return sql_data
+        except: ValueError
+
+def getcomposer_types(FK_composer):
+        """execute sql query"""
+#        if (i=="all" or t=="0"):
+#            return
+#       
+        if (FK_composer=='0'):
+            rs=cur.execute("""SELECT T.type, COUNT(*)
+  FROM works AS W
+JOIN composers  AS C
+  ON W.FK_composer=C.PK_composer
+ LEFT OUTER JOIN Types T
+ON W.FK_type=T.PK_type 
+GROUP BY W.FK_type
+ORDER BY W.FK_type""")
+        else:            
+            rs=cur.execute("""SELECT T.type, COUNT(*)
+  FROM works AS W
+JOIN composers  AS C
+  ON W.FK_composer=C.PK_composer
+ LEFT OUTER JOIN Types T
+ON W.FK_type=T.PK_type 
+WHERE FK_composer=?
+GROUP BY W.FK_type
+ORDER BY W.FK_type""",(FK_composer,))
+        
+        
+        try:
+            columnsSQL = [column[0] for column in rs.description]
+        
+            f=rs.fetchall()
+        
+    
+            k=np.asarray(f)
+    
+    
+            sql_data=pd.DataFrame(k,columns=columnsSQL)
+            #sql_data=pd.to_numeric(sql_data)#.columns[1])
+            s2=sql_data.sort_values(sql_data.columns[1],ascending=False)
+            return s2#sql_data#.values.tolist()
+        
+        except: ValueError
+        
+        
+def getcomposer_instruments(FK_type,FK_composer):#corriger colonnes: à séparer
+        """execute sql query"""
+#        if (i=="all" or t=="0"):
+#            return
+#       
+        if (FK_composer=='0'):
+            sql_data=pd.read_sql("""SELECT SUM(piano) AS piano, SUM(violin) AS violin, 
+                       SUM(flute) AS flute, SUM(clarinet) AS clarinet, SUM(oboe) AS oboe,
+                       SUM(trumpet) AS trumpet, SUM(horn) AS horn, SUM(bassoon) AS bassoon, SUM(cello) AS cello,
+                        SUM(viola) AS viola, SUM(guitar) AS guitar, SUM(contrabass) AS contrabass,
+                        SUM(organ) AS organ
+FROM works
+WHERE FK_Type=?""",(FK_type,))
+            rs=cur.execute("""SELECT SUM(piano) AS piano, SUM(violin) AS violin, 
+                       SUM(flute) AS flute, SUM(clarinet) AS clarinet, SUM(oboe) AS oboe,
+                       SUM(trumpet) AS trumpet, SUM(horn) AS horn, SUM(bassoon) AS bassoon, SUM(cello) AS cello,
+                        SUM(viola) AS viola, SUM(guitar) AS guitar, SUM(contrabass) AS contrabass,
+                        SUM(organ) AS organ
+FROM works
+WHERE FK_Type=?""",(FK_type,))
+        else:
+#             sql_data=pd.read_sql("""SELECT SUM(piano) AS piano, SUM(violin) AS violin, 
+#                        SUM(flute) AS flute, SUM(clarinet) AS clarinet, SUM(oboe) AS oboe,
+#                        SUM(trumpet) AS trumpet, SUM(horn) AS horn, SUM(bassoon) AS bassoon, SUM(cello) AS cello,
+#                         SUM(viola) AS viola, SUM(guitar) AS guitar, SUM(contrabass) AS contrabass,
+#                         SUM(organ) AS organ
+# FROM works
+# WHERE FK_Type=?""",(FK_type,))
+            
+            rs=cur.execute("""SELECT SUM(piano) AS piano, SUM(violin) AS violin, 
+                        SUM(flute) AS flute, SUM(clarinet) AS clarinet, SUM(oboe) AS oboe,
+                        SUM(trumpet) AS trumpet, SUM(horn) AS horn, SUM(bassoon) AS bassoon, SUM(cello) AS cello,
+                        SUM(viola) AS viola, SUM(guitar) AS guitar, SUM(contrabass) AS contrabass,
+                        SUM(organ) AS organ
+FROM works
+WHERE FK_Type=? AND FK_composer=?""",(FK_type,FK_composer,))
+            #print(rs.description)
+        
+        try:
+            #columnsSQL=[rs.fetchall()]            
+            columnsSQL = [column[0] for column in rs.description]
+        
+            f=rs.fetchall()
+            print (columnsSQL)
+            #print(f)
+            k=np.asarray(f)
+    
+            # print(f)
+            #print(k)
+            # k2=columnsSQL+k
+            # print(k2)
+            sql_data=pd.DataFrame(k,columns=columnsSQL).transpose()
+            #C=zip(columnsSQL,sql_data.values)
+           #print(C[1])
+            sql_data_f=pd.DataFrame(sql_data[sql_data[0].notnull()])
+            sqlarray=sql_data.values
+            print(sqlarray)
+            dict_instr = { columnsSQL[i]: sqlarray[i].item()  for i in range(len(columnsSQL))}
+            #print (sql_data_f.header)
+            return dict_instr
+        except: ValueError
+dict_instr=getcomposer_instruments(1,1838)
+# listinstr=columnsSQL.append(sqlarray.tolist())
+# print(listinstr)
+# print(sqlarray.tolist())
+#print(list(dict_instr))
+# print(list(dict_instr.keys()))
+# for key, value in dict_instr:
+#     if not math.isnan(value):
+#         print(key+','+value)
+print(dict_instr)
+#print(list(dict_instr.keys()) if not math.isnan(sqlarray[i].item()))
+#print(list(dict_instr.values()))
+#print(getcomposer_instruments(1,1838).iloc[:,0].values)        
+#getcomposerperiodinstrument('0','all','all')
+#print(getcomposer_types(3202).iloc[:,1].values) 
+
+# print(getcomposer_instruments(1,1838).head())
+#print(gettype("sonata"))
+#print(getinstrument("string"))
+#print(getcomposerperiodinstrument("2","all","all"))
