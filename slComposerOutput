@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Nov 16 10:50:55 2023
+
+@author: mhurtgen
+"""
+
+import streamlit as st
+import getcomposers as gc
+
+instruments=['all','piano','violin','flute','clarinet','oboe','trumpet','horn',
+                 'cello','viola','guitar','double_base','string','wind','organ']
+
+types=['all','concerto','symphony','sonata','minuet','toccata','fuga','prelude',
+           'lied','oratorio','cantata','mass','opera','waltz',
+           'trio','quartet','quintet','sextet','septuor','octuor','ländler','song','variation','romance']
+
+
+df_c=gc.getcomposers()
+C = list(zip(df_c.iloc[:,0].values,df_c.iloc[:,1].values))
+
+composer=st.selectbox('composer',
+                        options=instruments
+                        )
+#df_t=gc.getcomposer_types(c)
