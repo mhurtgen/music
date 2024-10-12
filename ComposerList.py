@@ -1,13 +1,39 @@
+import Composer, ComposerScraper
+import re
+import requests
+from bs4 import BeautifulSoup
+import sqlite3
+import pandas as pd
+import pickle
+
+conn = sqlite3.connect('ISMLPperiodtotal2')
+
 class ComposerList:
-    import Composer, ComposerScraper, re, requests
+    
 
     composer_pattern=re.compile('.*,.*')
     next_pattern=re.compile('.*next.*')
-
+    conn = sqlite3.connect('ISMLPperiodtotal2')
+    
     def __init__(self):
         self.ComposerList=list()
 
- 
+    def getlist(self):
+        return self.ComposerList
+    
+    def getsize(self):
+        return len(self.ComposerList)
+
+    def getdata(self,conn):
+        query="""
+        SELECT PK_composer, name
+        FROM composers 
+        WHERE PK_composer=1302
+        """
+   
+        sql_data=pd.read_sql(query,conn)
+    
+        return sql_data
 
     def gethrefnext(self,bs_obj):
         for el in bs_obj.select('a'):
@@ -25,7 +51,7 @@ class ComposerList:
             index_composer=getlistsize()+1
             """name of composer"""
             data=li.text
-            
+            print(data)
             
             test=composer_pattern.match(data)
             if (test!=None):
@@ -34,7 +60,7 @@ class ComposerList:
                 scraper=ComposerScraper(comp)
                 
                 """add works to composition field of Composer object""" #TEST
-                #scraper.getallworks(comp)
+                scraper.getallworks(comp)
 
                 """add composer to self.ComposerList"""
                 self.ComposerList.append(comp)
@@ -60,11 +86,11 @@ class ComposerList:
         """modify next read"""
 
         url=self.getperiodstring(period)
-    
+        print(url)
         webcontent=requests.get(url)
-    
+        
         bs_obj = BeautifulSoup(webcontent.text,"html.parser")
-
+        
         while True:
         
             try:
@@ -86,9 +112,72 @@ class ComposerList:
         for period in range(1,5):
             self.getcomposersofperiod(period)
 
-    def __repr__(self):
-        for c in self:
+    def printout(self):
+        for c in self.ComposerList:
             print(c.getname())
+
+    def getimslp(self):
+        data=self.getdata(conn)
+
+        for index,row in data.iterrows():
+            index_composer=row['PK_composer']
+            name=row['name']
+
+        
+            """create composer using name"""
+            comp=Composer.Composer(name)
+            scraper=ComposerScraper.ComposerScraper(comp)
+            #print(index_composer)    
+            """add works to composition field of Composer object""" #TEST
+            scraper.getallworks(comp)
+
+            """add composer to ComposerList"""
+            self.ComposerList.append(comp)
+
+        #works,next=getallworks_page(url)
+        
+    def export(self,filename):
+        with open(filename,'wb') as f:
+            pickle.dump(self,f)
+
+    def setinfo(self):
+        """set parameters of compositions"""
+        for c in self.ComposerList:
+            c.setinfocompositions()
+
+    def export_compositions(self):
+        """get table of all compositions and index of corresponding composer"""
+
+        compositions=pd.DataFrame()
+        """i is composer index"""
+        i=0
+        for c in self.ComposerList:
+            i=i+1
+            
+            info=c.getinfocompositions()
+            
+            info.columns=['title','type','tone','mode','piano','violin','flute','clarinet','oboe','trumpet','horn','bassoon','cello','viola','guitar','contrabass','string','wind','organ','harp','saxophone']
+            
+            info['FK_composer']=i
+            
+            compositions.append(info)
+            
+        return compositions
+
+    def export_composers(self):
+        """get table of all composers and index"""
+        
+        composers=pd.DataFrame()
+        
+        """define composer index i"""
+        i=0
+        for c in self.ComposerList:
+            i=i+1
+            info=[i, c.getname()]
+            dfinfo= pd.DataFrame(info)
+            composers=pd.concat([composers,dfinfo],ignore_index=True)
+
+        return composers
 
 
 
